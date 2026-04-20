@@ -32,12 +32,11 @@ Configure once at app launch:
 import AppState
 
 try? AppState.configure(
-    Configuration(
-        apiKey: "ak_live_...",
-        baseURL: URL(string: "https://api.appstate.cc")!
-    )
+    Configuration(apiKey: "ak_live_...")
 )
 ```
+
+`baseURL` defaults to `https://api.appstate.cc`. Override it to point at staging or a local `wrangler dev`.
 
 Capture events anywhere:
 
@@ -80,13 +79,13 @@ Opt out with `Configuration(..., autoContext: false)`.
 ```swift
 try Configuration(
     apiKey: "ak_live_...",
-    baseURL: URL(string: "https://api.appstate.cc")!,
+    baseURL: Configuration.defaultBaseURL, // override for staging or local dev
     batchSize: 20,            // events per flush
     flushInterval: 5,         // seconds between automatic flushes
     maxQueueBytes: 5_242_880, // disk cap; oldest events drop past this
     requestTimeout: 30,       // per-request timeout
     autoContext: true,        // attach device/app metadata
-    observeLifecycle: true    // flush on background/terminate
+    observeLifecycle: false   // call AppState.flush() yourself, or set true to flush on background/terminate
 )
 ```
 

@@ -1,6 +1,8 @@
 import Foundation
 
 public struct Configuration: Sendable {
+    public static let defaultBaseURL = URL(string: "https://api.appstate.cc")!
+
     public let apiKey: String
     public let baseURL: URL
     public let batchSize: Int
@@ -12,13 +14,13 @@ public struct Configuration: Sendable {
 
     public init(
         apiKey: String,
-        baseURL: URL,
+        baseURL: URL = Configuration.defaultBaseURL,
         batchSize: Int = 20,
         flushInterval: TimeInterval = 5,
         maxQueueBytes: Int = 5 * 1024 * 1024,
         requestTimeout: TimeInterval = 30,
         autoContext: Bool = true,
-        observeLifecycle: Bool = true
+        observeLifecycle: Bool = false
     ) throws {
         guard !apiKey.isEmpty else {
             throw ConfigurationError.missingAPIKey
