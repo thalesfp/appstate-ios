@@ -72,4 +72,21 @@ final class DiskBufferTests: XCTestCase {
         let buffer = try DiskBuffer(directory: tempDir, maxBytes: 1024)
         XCTAssertEqual(try buffer.readAll(), [])
     }
+
+    func test_givenCorruptLineBetweenValidOnes_whenReading_thenSkipsCorruptAndReturnsValid() throws {
+        let buffer = try DiskBuffer(directory: tempDir, maxBytes: 4096)
+        try buffer.append(Event(name: "a"))
+
+        let fileURL = tempDir.appendingPathComponent("events.jsonl")
+        let handle = try FileHandle(forWritingTo: fileURL)
+        try handle.seekToEnd()
+        try handle.write(contentsOf: Data("{not valid json\n".utf8))
+        try handle.close()
+
+        try buffer.append(Event(name: "b"))
+
+        let loaded = try buffer.readAll()
+
+        XCTAssertEqual(loaded.map(\.name), ["a", "b"], "corrupt line should be skipped, valid events preserved")
+    }
 }

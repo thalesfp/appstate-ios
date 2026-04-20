@@ -1,10 +1,12 @@
 import Foundation
+import os
 
 final class Client {
     private let configuration: Configuration
-    private let queue: EventQueue
+    private let queue: EventQueue?
     private let lifecycle: LifecycleObserver?
     private let autoContext: [String: MetadataValue]
+    private let logger = Logger(subsystem: "cc.appstate.sdk", category: "Client")
 
     init(configuration: Configuration) {
         self.configuration = configuration
@@ -17,23 +19,30 @@ final class Client {
         )
 
         let directory = Self.bufferDirectory()
-        let buffer: DiskBuffer
+        let buffer: DiskBuffer?
 
         do {
             buffer = try DiskBuffer(directory: directory, maxBytes: configuration.maxQueueBytes)
         } catch {
-            fatalError("AppState: failed to create disk buffer at \(directory.path): \(error)")
+            logger.error("failed to create disk buffer at \(directory.path, privacy: .public): \(String(describing: error), privacy: .public) — SDK will drop events")
+            buffer = nil
         }
 
-        self.queue = EventQueue(
+        guard let buffer else {
+            self.queue = nil
+            self.lifecycle = nil
+            return
+        }
+
+        let queue = EventQueue(
             transport: transport,
             buffer: buffer,
             batchSize: configuration.batchSize,
             flushInterval: configuration.flushInterval
         )
+        self.queue = queue
 
         if configuration.observeLifecycle {
-            let queue = self.queue
             self.lifecycle = LifecycleObserver {
                 Task { await queue.flush() }
             }
@@ -51,6 +60,8 @@ final class Client {
         message: String,
         metadata: [String: MetadataValue]
     ) {
+        guard let queue else { return }
+
         let merged = mergeMetadata(metadata)
         let event = Event(name: name, level: level, message: message, metadata: merged)
 
@@ -58,11 +69,13 @@ final class Client {
     }
 
     func flush() async -> EventQueue.FlushOutcome {
-        await queue.flush()
+        guard let queue else { return .idle }
+        return await queue.flush()
     }
 
     func shutdown() async {
         lifecycle?.stop()
+        guard let queue else { return }
         await queue.stop()
         _ = await queue.flush()
     }

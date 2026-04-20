@@ -1,4 +1,5 @@
 import Foundation
+import os
 
 public final class DiskBuffer {
     private let fileURL: URL
@@ -6,6 +7,7 @@ public final class DiskBuffer {
     private let fileManager: FileManager
     private let encoder: JSONEncoder
     private let decoder: JSONDecoder
+    private let logger = Logger(subsystem: "cc.appstate.sdk", category: "DiskBuffer")
 
     public init(directory: URL, filename: String = "events.jsonl", maxBytes: Int, fileManager: FileManager = .default) throws {
         self.fileURL = directory.appendingPathComponent(filename)
@@ -53,8 +55,12 @@ public final class DiskBuffer {
             let slice = data[start..<end]
 
             if !slice.isEmpty {
-                let event = try decoder.decode(Event.self, from: slice)
-                events.append(event)
+                do {
+                    let event = try decoder.decode(Event.self, from: slice)
+                    events.append(event)
+                } catch {
+                    logger.error("skipping corrupt event line: \(String(describing: error), privacy: .public)")
+                }
             }
 
             start = end == data.endIndex ? end : data.index(after: end)
