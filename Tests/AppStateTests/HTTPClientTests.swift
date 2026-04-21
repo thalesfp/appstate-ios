@@ -58,6 +58,42 @@ final class HTTPClientTests: XCTestCase {
         _ = try await client.send(Event(name: "x"))
     }
 
+    func test_givenSuccessResponse_whenSettingTraits_thenReturnsAccepted() async throws {
+        StubURLProtocol.responder = { request in
+            XCTAssertEqual(request.url?.path, "/v1/users/user_abc/traits")
+            XCTAssertEqual(request.value(forHTTPHeaderField: "Authorization"), "Bearer test-key")
+            return (HTTPURLResponse(url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!, Data())
+        }
+
+        let client = makeClient()
+        let outcome = try await client.setTraits(
+            userId: "user_abc",
+            traits: ["theme": "dark", "count": 3, "onboarded": true]
+        )
+
+        XCTAssertEqual(outcome, .accepted)
+    }
+
+    func test_givenClientError_whenSettingTraits_thenReturnsRejectedWithBody() async throws {
+        StubURLProtocol.responder = { request in
+            (HTTPURLResponse(url: request.url!, statusCode: 400, httpVersion: nil, headerFields: nil)!, Data("invalid_traits".utf8))
+        }
+
+        let client = makeClient()
+        let outcome = try await client.setTraits(userId: "u", traits: ["k": "v"])
+
+        XCTAssertEqual(outcome, .rejected(status: 400, body: "invalid_traits"))
+    }
+
+    func test_givenNetworkFailure_whenSettingTraits_thenReturnsRetryable() async throws {
+        // No responder set — StubURLProtocol fails with "not connected".
+        let client = makeClient()
+        let outcome = try await client.setTraits(userId: "u", traits: ["k": "v"])
+
+        if case .retryable = outcome { return }
+        XCTFail("expected retryable, got \(outcome)")
+    }
+
     private func makeClient() -> HTTPClient {
         let configuration = URLSessionConfiguration.ephemeral
         configuration.protocolClasses = [StubURLProtocol.self]

@@ -1,6 +1,6 @@
 import Foundation
 
-public final class HTTPClient: Transport {
+public final class HTTPClient: Transport, TraitsTransport {
     private let apiKey: String
     private let baseURL: URL
     private let session: URLSession
@@ -45,4 +45,42 @@ public final class HTTPClient: Transport {
             return .retryable(reason: "http \(http.statusCode)")
         }
     }
+
+    public func setTraits(userId: String, traits: [String: TraitValue]) async throws -> TraitsUpdateOutcome {
+        let encodedId = userId.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? userId
+        let url = baseURL.appendingPathComponent("v1/users/\(encodedId)/traits")
+
+        var request = URLRequest(url: url, timeoutInterval: timeout)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
+
+        let encoder = JSONEncoder()
+        request.httpBody = try encoder.encode(TraitsUpdateBody(traits: traits))
+
+        let (data, response): (Data, URLResponse)
+        do {
+            (data, response) = try await session.data(for: request)
+        } catch {
+            return .retryable(reason: "network: \(error.localizedDescription)")
+        }
+
+        guard let http = response as? HTTPURLResponse else {
+            throw TransportError.invalidResponse
+        }
+
+        switch http.statusCode {
+        case 200..<300:
+            return .accepted
+        case 400..<500:
+            let body = String(data: data, encoding: .utf8) ?? ""
+            return .rejected(status: http.statusCode, body: body)
+        default:
+            return .retryable(reason: "http \(http.statusCode)")
+        }
+    }
+}
+
+private struct TraitsUpdateBody: Encodable {
+    let traits: [String: TraitValue]
 }

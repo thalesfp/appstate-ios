@@ -61,6 +61,15 @@ public final class AppState {
         return await client.flush()
     }
 
+    public static func setTraits(userId: String, _ traits: [String: TraitValue]) async {
+        guard let client = currentClient() else {
+            logger.warning("AppState.setTraits called before configure; dropping")
+            return
+        }
+
+        await client.setTraits(userId: userId, traits: traits)
+    }
+
     public static func shutdown() async {
         let taken = takeClient()
         await taken?.shutdown()

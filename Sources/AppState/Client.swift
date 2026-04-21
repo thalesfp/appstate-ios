@@ -6,6 +6,7 @@ final class Client {
     private let queue: EventQueue?
     private let lifecycle: LifecycleObserver?
     private let autoContext: [String: MetadataValue]
+    private let traitsTransport: TraitsTransport
     private let logger = Logger(subsystem: "cc.appstate.sdk", category: "Client")
 
     init(configuration: Configuration) {
@@ -17,6 +18,7 @@ final class Client {
             baseURL: configuration.baseURL,
             timeout: configuration.requestTimeout
         )
+        self.traitsTransport = transport
 
         let directory = Self.bufferDirectory()
         let buffer: DiskBuffer?
@@ -71,6 +73,25 @@ final class Client {
     func flush() async -> EventQueue.FlushOutcome {
         guard let queue else { return .idle }
         return await queue.flush()
+    }
+
+    func setTraits(userId: String, traits: [String: TraitValue]) async {
+        do {
+            let outcome = try await traitsTransport.setTraits(userId: userId, traits: traits)
+
+            switch outcome {
+            case .accepted:
+                return
+            case .rejected(let status, let body):
+                logger.error("setTraits rejected (http \(status, privacy: .public)): \(body, privacy: .public)")
+            case .retryable(let reason):
+                logger.warning("setTraits dropped: \(reason, privacy: .public)")
+            }
+        } catch {
+            // Swallow per SDK host-safety rule — never let the host app see
+            // a transport error from a telemetry call.
+            logger.error("setTraits threw: \(String(describing: error), privacy: .public)")
+        }
     }
 
     func shutdown() async {
