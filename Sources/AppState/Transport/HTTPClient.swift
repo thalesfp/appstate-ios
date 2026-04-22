@@ -46,8 +46,8 @@ public final class HTTPClient: Transport, TraitsTransport {
         }
     }
 
-    public func setTraits(userId: String, traits: [String: TraitValue]) async throws -> TraitsUpdateOutcome {
-        let encodedId = userId.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? userId
+    public func setTraits(deviceId: String, traits: [String: TraitValue]) async throws -> TraitsUpdateOutcome {
+        let encodedId = deviceId.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? deviceId
         let url = baseURL.appendingPathComponent("v1/users/\(encodedId)/traits")
 
         var request = URLRequest(url: url, timeoutInterval: timeout)

@@ -75,9 +75,9 @@ final class Client {
         return await queue.flush()
     }
 
-    func setTraits(userId: String, traits: [String: TraitValue]) async {
+    func setTraits(deviceId: String, traits: [String: TraitValue]) async {
         do {
-            let outcome = try await traitsTransport.setTraits(userId: userId, traits: traits)
+            let outcome = try await traitsTransport.setTraits(deviceId: deviceId, traits: traits)
 
             switch outcome {
             case .accepted:

@@ -1,7 +1,7 @@
 import Foundation
 
 public protocol TraitsTransport: Sendable {
-    func setTraits(userId: String, traits: [String: TraitValue]) async throws -> TraitsUpdateOutcome
+    func setTraits(deviceId: String, traits: [String: TraitValue]) async throws -> TraitsUpdateOutcome
 }
 
 public enum TraitsUpdateOutcome: Equatable, Sendable {

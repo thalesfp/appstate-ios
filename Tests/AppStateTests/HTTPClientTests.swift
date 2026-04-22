@@ -67,7 +67,7 @@ final class HTTPClientTests: XCTestCase {
 
         let client = makeClient()
         let outcome = try await client.setTraits(
-            userId: "user_abc",
+            deviceId: "user_abc",
             traits: ["theme": "dark", "count": 3, "onboarded": true]
         )
 
@@ -80,7 +80,7 @@ final class HTTPClientTests: XCTestCase {
         }
 
         let client = makeClient()
-        let outcome = try await client.setTraits(userId: "u", traits: ["k": "v"])
+        let outcome = try await client.setTraits(deviceId: "u", traits: ["k": "v"])
 
         XCTAssertEqual(outcome, .rejected(status: 400, body: "invalid_traits"))
     }
@@ -88,7 +88,7 @@ final class HTTPClientTests: XCTestCase {
     func test_givenNetworkFailure_whenSettingTraits_thenReturnsRetryable() async throws {
         // No responder set — StubURLProtocol fails with "not connected".
         let client = makeClient()
-        let outcome = try await client.setTraits(userId: "u", traits: ["k": "v"])
+        let outcome = try await client.setTraits(deviceId: "u", traits: ["k": "v"])
 
         if case .retryable = outcome { return }
         XCTFail("expected retryable, got \(outcome)")
